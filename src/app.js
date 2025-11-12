@@ -10,11 +10,7 @@ dotenv.config();
 const app = express();
 
 app.use(helmet());
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'x-api-key'],
-}));
+app.use(cors());
 
 app.options('*', cors());
 app.use(express.json({ limit: '1mb' }));
