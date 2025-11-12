@@ -2,10 +2,21 @@
 const { v4: uuidv4 } = require('uuid');
 const eventModel = require('../models/event.model');
 const Redis = require('ioredis');
-const redis = new Redis({
-  host: process.env.REDIS_HOST || '127.0.0.1',
-  port: +process.env.REDIS_PORT || 6379
-});
+
+let redis = null;
+if (process.env.REDIS_HOST && process.env.REDIS_HOST !== 'none') {
+  redis = new Redis({
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: +process.env.REDIS_PORT || 6379,
+  });
+
+  redis.on('connect', () => console.log('[Redis] Connected'));
+  redis.on('error', (err) => console.error('[Redis Error]', err.message));
+} else {
+  console.log('[Redis] Disabled (REDIS_HOST=none)');
+}
+
+// ------------------ Controller functions ------------------
 
 async function collect(req, res, next) {
   try {
@@ -21,13 +32,19 @@ async function collect(req, res, next) {
       device: body.device || 'unknown',
       ip_address: body.ipAddress || req.ip,
       timestamp: body.timestamp ? new Date(body.timestamp) : new Date(),
-      metadata: body.metadata || {}
+      metadata: body.metadata || {},
     };
 
     const inserted = await eventModel.insertEvent(ev);
-    await redis.del(`event_summary:${ev.event_type}`);
+
+    if (redis) {
+      await redis.del(`event_summary:${ev.event_type}`).catch(() => {});
+    }
+
     res.status(201).json({ success: true, id: inserted.id });
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function eventSummary(req, res, next) {
@@ -36,28 +53,36 @@ async function eventSummary(req, res, next) {
     if (!event) return res.status(400).json({ error: 'event query param required' });
 
     const cacheKey = `event_summary:${event}:${startDate || ''}:${endDate || ''}:${app_id || ''}`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return res.json(JSON.parse(cached));
+    let cached = null;
+
+    if (redis) {
+      cached = await redis.get(cacheKey).catch(() => null);
     }
+
+    if (cached) return res.json(JSON.parse(cached));
 
     const data = await eventModel.countEventsByType({
       event,
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
-      app_id
+      app_id,
     });
 
     const response = {
       event,
       count: data.count || 0,
       uniqueUsers: data.unique_users || 0,
-      deviceData: data.device_data || {}
+      deviceData: data.device_data || {},
     };
 
-    await redis.set(cacheKey, JSON.stringify(response), 'EX', 60);
+    if (redis) {
+      await redis.set(cacheKey, JSON.stringify(response), 'EX', 60).catch(() => {});
+    }
+
     res.json(response);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function userStats(req, res, next) {
@@ -66,7 +91,12 @@ async function userStats(req, res, next) {
     if (!userId) return res.status(400).json({ error: 'userId required' });
 
     const cacheKey = `user_stats:${userId}`;
-    const cached = await redis.get(cacheKey);
+    let cached = null;
+
+    if (redis) {
+      cached = await redis.get(cacheKey).catch(() => null);
+    }
+
     if (cached) return res.json(JSON.parse(cached));
 
     const stats = await eventModel.getUserStats(userId);
@@ -75,14 +105,19 @@ async function userStats(req, res, next) {
       totalEvents: stats.total_events || 0,
       deviceDetails: {
         browser: stats.browser || null,
-        os: stats.os || null
+        os: stats.os || null,
       },
-      ipAddress: stats.ip_address || null
+      ipAddress: stats.ip_address || null,
     };
 
-    await redis.set(cacheKey, JSON.stringify(response), 'EX', 30);
+    if (redis) {
+      await redis.set(cacheKey, JSON.stringify(response), 'EX', 30).catch(() => {});
+    }
+
     res.json(response);
-  } catch (err) { next(err); }
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = { collect, eventSummary, userStats };
