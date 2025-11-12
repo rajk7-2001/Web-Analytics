@@ -16,7 +16,7 @@ const app = express();
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(helmet());
 app.use(cors({
-  origin: '*',
+  origin: ['https://analytics-backend-xz2s.onrender.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-api-key'],
 }));
