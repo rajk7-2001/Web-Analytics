@@ -9,7 +9,7 @@ const options = {
       description: 'Unified Event Analytics Engine - API documentation'
     },
     servers: [
-      { url: process.env.SWAGGER_BASE_URL || `'https://analytics-backend-xz2s.onrender.com'` }
+      { url: process.env.SWAGGER_BASE_URL || `https://analytics-backend-xz2s.onrender.com` }
     ],
     components: {
       securitySchemes: {
