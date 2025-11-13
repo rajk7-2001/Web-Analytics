@@ -77,11 +77,122 @@ Swagger → [http://localhost:3000/docs](http://localhost:3000/docs)
 | GET | /api/analytics/event-summary | Get aggregated event summary | ❌ |
 | GET | /api/analytics/user-stats | Get user-specific analytics | ❌ |
 
-## Testing via Swagger
-1. Visit: https://analytics-backend-xz2s.onrender.com/docs
-2. Click **Authorize**
-3. Enter your `x-api-key`
-4. Try endpoints like `/api/analytics/collect`
+# How to Test Using Swagger UI
+
+## 🔹 Step 1 — Open Swagger
+Visit:  
+👉 https://analytics-backend-xz2s.onrender.com/docs
+
+---
+
+## 🔹 Step 2 — Register App
+Open **POST /api/auth/register** → Try it out:
+
+```json
+{
+  "app_name": "MyTestApp",
+  "metadata": { "owner": "YourName" }
+}
+```
+
+You will receive:
+- `id`
+- `api_key`
+- `expires_at`
+
+Copy your `api_key`.
+
+---
+
+## 🔹 Step 3 — Authorize Swagger
+Click the **Authorize (🔒)** button → enter your API key.
+
+This automatically attaches:
+```
+x-api-key: <your-key>
+```
+
+---
+
+## 🔹 Step 4 — Get API Key Details
+Open **GET /api/auth/api-key** → Try it out  
+Enter your App ID.
+
+---
+
+## 🔹 Step 5 — Collect Event
+Open **POST /api/analytics/collect**  
+Example body:
+
+```json
+{
+  "event": "cta_click",
+  "url": "https://example.com",
+  "referrer": "https://google.com",
+  "device": "mobile",
+  "ipAddress": "192.168.1.1",
+  "timestamp": "2024-02-20T12:34:56Z",
+  "metadata": {
+    "browser": "Chrome",
+    "os": "Android",
+    "userId": "user123"
+  }
+}
+```
+
+Expected:
+```json
+{ "success": true, "id": "event-uuid" }
+```
+
+---
+
+## 🔹 Step 6 — Event Summary
+Open **GET /api/analytics/event-summary**
+
+`event = cta_click`
+
+Expected:
+```json
+{
+  "event": "cta_click",
+  "count": 1,
+  "uniqueUsers": 1,
+  "deviceData": { "mobile": 1 }
+}
+```
+
+---
+
+## 🔹 Step 7 — User Stats
+Open **GET /api/analytics/user-stats**  
+`userId = user123`
+
+Expected:
+```json
+{
+  "userId": "user123",
+  "totalEvents": 1,
+  "deviceDetails": {
+    "browser": "Chrome",
+    "os": "Android"
+  },
+  "ipAddress": "192.168.1.1"
+}
+```
+
+---
+
+## 🔹 Step 8 — Revoke API Key
+Open **POST /api/auth/revoke**
+
+```json
+{
+  "api_key": "<your-api-key>"
+}
+```
+
+---
 
 ## Challenges & Solutions
 | Challenge | Solution |
