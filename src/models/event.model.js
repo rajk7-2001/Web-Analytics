@@ -29,7 +29,7 @@ async function countEventsByType({ event, startDate, endDate, app_id }) {
     where += ` AND timestamp <= $${params.length}`;
   }
 
-  // ✅ Fixed query — no outer alias using metadata
+  //  Fixed query — no outer alias using metadata
   const sql = `
     SELECT 
       COUNT(*)::int AS count,
@@ -46,7 +46,7 @@ async function countEventsByType({ event, startDate, endDate, app_id }) {
     ) AS sub;
   `;
 
-  console.log("🧩 Running analytics query:", sql, params);
+  console.log("Running analytics query:", sql, params);
 
   const res = await db.query(sql, params);
   return res.rows[0];
